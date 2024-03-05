@@ -1,0 +1,107 @@
+data <- read.csv("~/Desktop/AMZN/AMZN.csv")
+data_amzn <- data$Adj.Close
+
+rolling_window <- 40 #Train
+prediction_size <- 10 #Test
+num_simulations <- 1000 #Number of Sims
+
+excess_data <- length(data_amzn) - 1280 - rolling_window
+data_amzn <- data_amzn[-(1:excess_data)]
+
+num_prediction_sets <- (length(data_amzn) - rolling_window) / prediction_size
+
+predictions_matrix <- matrix(0, nrow = num_prediction_sets * prediction_size, ncol = num_simulations)
+error_metrics_matrix <- matrix(0, nrow = num_simulations, ncol = 4)
+
+for (sim in 1:num_simulations) {
+  predictions <- numeric(num_prediction_sets * prediction_size)
+  
+  for (set in 1:num_prediction_sets) {
+    start_index <- (set - 1) * prediction_size + 1
+    end_index <- start_index + rolling_window - 1
+    train_dat <- data_amzn[start_index:end_index]
+    train_dat.ts <- ts(train_dat)
+    returns <- diff(log(train_dat.ts))
+    drift <- mean(returns)
+    volatility <- sd(returns)
+    S0 <- train_dat.ts[rolling_window]
+    
+    for (j in 1:prediction_size) {
+      next_price <- S0 * exp((drift - 0.5 * volatility^2) + volatility * rnorm(1))
+      prediction_index <- (set - 1) * prediction_size + j
+      predictions[prediction_index] <- next_price
+      S0 <- next_price
+    }
+  }
+  
+  predictions_matrix[, sim] <- predictions
+  
+  actual_prices <- tail(data_amzn, length(predictions))
+  residuals <- actual_prices - predictions
+  squared_residuals <- residuals^2
+  absolute_residuals <- abs(residuals)
+  percentage_residuals <- absolute_residuals / actual_prices
+  
+  error_metrics_matrix[sim, 1] <- mean(squared_residuals)
+  error_metrics_matrix[sim, 2] <- sqrt(mean(squared_residuals))
+  error_metrics_matrix[sim, 3] <- mean(absolute_residuals)
+  error_metrics_matrix[sim, 4] <- mean(percentage_residuals) * 100
+}
+
+mean_predictions <- rowMeans(predictions_matrix)
+mean_error_metrics <- colMeans(error_metrics_matrix)
+
+std_predictions <- apply(predictions_matrix, 1, sd)
+
+ci_margin <- std_predictions * qnorm(0.95)
+
+upper_bound <- mean_predictions + ci_margin
+lower_bound <- mean_predictions - ci_margin
+
+data$Date <- as.Date(data$Date)
+dates <- data$Date[(length(data$Date) - length(actual_prices) + 1):length(data$Date)]
+
+plot(dates, actual_prices, type = 'l', col = 'blue', ylab = 'Price (USD)',
+     main = '$AMZN Stock Price: Actual vs Predicted', xaxt = 'n', xlab = "Date")
+lines(dates, mean_predictions, type = 'l', col = 'red')
+polygon(c(dates, rev(dates)), c(upper_bound, rev(lower_bound)), col = "gray90", border = NA)
+lines(dates, actual_prices, type = 'l', col = 'blue')
+lines(dates, mean_predictions, type = 'l', col = 'red')
+
+years <- as.Date(paste0(2019:2024, "-01-01"))
+axis(1, at = years, labels = as.character(2019:2024))
+legend("topright", legend = c("Actual", "Predicted"), col = c("blue", "red"), lty = 1, cex = 0.8)
+
+error_metrics <- data.frame(
+  MSE = round(mean_error_metrics[1], 3),
+  RMSE = round(mean_error_metrics[2], 3),
+  MAE = round(mean_error_metrics[3], 3),
+  MAPE = round(mean_error_metrics[4], 3)
+)
+
+print(error_metrics)
+
+plot(dates, residuals, type = 'l', col = 'black', ylab = 'Actual-Predicted Price',
+     main = 'Difference between Actual and Predicted Price')
+abline(h=0, col="red")
+
+hist(residuals, breaks=50, main='Histogram of Residuals', xlab='Residuals', col='gray')
+
+z_start <- 12
+z_end <- 55
+start_zoom_date <- dates[z_start]
+end_zoom_date <- dates[z_end]
+
+price_range <- range(c(actual_prices[z_start:z_end], mean_predictions[z_start:z_end],
+                       lower_bound[z_start:z_end], upper_bound[z_start:z_end]))
+plot(dates, actual_prices, type = 'l', col = 'blue', ylab = 'Price (USD)',
+     main = '$AMZN Stock Price: Actual vs Predicted', xaxt = 'n', xlab = "Date",
+     xlim = c(start_zoom_date, end_zoom_date), ylim = price_range)
+lines(dates, mean_predictions, type = 'l', col = 'red')
+polygon(c(dates, rev(dates)), c(upper_bound, rev(lower_bound)), col = "gray90", border = NA)
+lines(dates, actual_prices, type = 'l', col = 'blue')
+lines(dates, mean_predictions, type = 'l', col = 'red')
+points(dates, actual_prices, pch = 1, col = 'blue')
+points(dates, mean_predictions, pch = 1, col = 'red')
+axis(1, at = dates[z_start:z_end], labels = format(dates[z_start:z_end], "%b %d"))
+legend("topleft", legend = c("Actual", "Predicted"), col = c("blue", "red"), lty = 1, pch = 1, cex = 0.8)
