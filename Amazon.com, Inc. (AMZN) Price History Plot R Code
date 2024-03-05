@@ -1,0 +1,10 @@
+data <- read.csv("~/Desktop/DATA/AMZN.csv") #$AMZN Historical Data: 2014-01-29 - 2024-01-26
+data_amzn <- data$Adj.Close
+data$Date <- as.Date(data$Date)
+
+
+plot(data$Date, data_amzn, type = "l",
+     main = "Amazon.com, Inc. (AMZN) Price History",
+     xlab = "Date", ylab = "Price (USD)",
+     col = "blue")
+
