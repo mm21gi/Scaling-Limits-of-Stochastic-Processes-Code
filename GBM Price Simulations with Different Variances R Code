@@ -1,0 +1,45 @@
+S0 <- 100
+mu <- 1
+T <- 1
+n <- 252 #Trading days in a year
+dt <- T / n
+num_simulations <- 1000000 #for debugging
+
+volatilities <- c(0, 0.1, 0.2, 0.3, 0.4, 0.5)
+
+plot(1, type="n", xlab="Days", ylab="Stock Price", xlim=c(0, n), ylim=c(0, 500), main="GBM Stock Price Simulation for Different Volatilities")
+
+colors <- rainbow(length(volatilities) + 1)
+colors <- colors[-which.max(col2rgb(colors)[1,] + col2rgb(colors)[2,])]  # Remove yellow for better plot visibility
+
+results <- data.frame(Volatility = numeric(),
+                      EmpiricalMean = numeric(),
+                      EmpiricalVariance = numeric(),
+                      TheoreticalMean = numeric(),
+                      TheoreticalVariance = numeric())
+
+for (i in seq_along(volatilities)) {
+  sigma <- volatilities[i]
+  
+  W <- c(0, cumsum(rnorm(n, mean = 0, sd = sqrt(dt))))
+  S <- S0 * exp((mu - 0.5 * sigma^2) * (0:n) * dt + sigma * W)
+  lines(0:n, S, type = 'l', col = colors[i])
+  
+  end_prices <- S0 * exp((mu - 0.5 * sigma^2) * T + sigma * sqrt(T) * rnorm(num_simulations))
+  empirical_mean <- mean(end_prices)
+  empirical_variance <- var(end_prices)
+  
+  theoretical_mean <- S0 * exp(mu * T)
+  theoretical_variance <- (S0^2) * exp(2 * mu * T) * (exp(sigma^2 * T) - 1)
+  
+  results <- rbind(results, data.frame(Volatility = sigma,
+                                       EmpiricalMean = empirical_mean,
+                                       EmpiricalVariance = empirical_variance,
+                                       TheoreticalMean = theoretical_mean,
+                                       TheoreticalVariance = theoretical_variance))
+}
+
+grid(nx = NULL, ny = NULL, col = "gray", lty = "dotted")
+legend("topleft", legend=paste("Volatility =", volatilities), col=colors, lty=1, cex=0.8)
+
+print(results)
