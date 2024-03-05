@@ -1,0 +1,24 @@
+n <- 25
+p1 <- 3/4
+p2 <- 1/4
+
+generate_random_walk <- function(n, p) {
+  steps <- ifelse(runif(n) < p, 1, -1)
+  walk <- cumsum(c(0, steps))
+  return(walk)
+}
+
+random_walk_1 <- generate_random_walk(n, p1)
+random_walk_2 <- generate_random_walk(n, p2)
+
+par(mfrow=c(1,2))
+
+#p=3/4
+plot(0:n, random_walk_1, type='o', col='blue',
+     main='Random walk for n=25 steps, p=3/4',
+     xlab='Time, n', ylab='Random walk, Xn')
+
+#p=1/4
+plot(0:n, random_walk_2, type='o', col='red',
+     main='Random walk for n=25 steps, p=1/4',
+     xlab='Time, n', ylab='Random walk, Xn')
