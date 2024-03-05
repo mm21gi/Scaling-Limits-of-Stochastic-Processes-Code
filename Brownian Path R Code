@@ -1,0 +1,9 @@
+n <- 3000 # number of observed sample returns
+t <- 1 # daily time horizon
+t.s <- seq(0, t, length=n+1) # time step
+dt <- t/n # change in time
+
+Bt <- sqrt(dt)*cumsum(c(0, rnorm(n, mean=0, sd=1))) #Wiener Process
+
+plot(t.s, Bt, type="l", col="blue", xlab="Time", ylab="Simulated BM")
+abline(h=0, lty=2, col="red")
