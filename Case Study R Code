@@ -1,0 +1,13 @@
+data <- read.csv("~/Desktop/DATA/AMZN.csv")
+
+start <- as.Date("2020-03-09")  #input desired start date in YYYY-MM-DD format.
+end <- as.Date("2020-05-01")    #input desired end date YYYY-MM-DD format.
+
+selected_data <- data[data$Date >= start & data$Date <= end, ]
+
+log_returns <- diff(log(selected_data$Adj.Close))
+drift <- mean(log_returns)
+volatility <- sd(log_returns)
+
+cat("Estimated Drift (mu): ", drift, "\n")
+cat("Estimated Volatility (sigma): ", volatility, "\n")
