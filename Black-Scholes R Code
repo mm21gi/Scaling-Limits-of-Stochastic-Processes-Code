@@ -1,0 +1,28 @@
+black_scholes_call <- function(S, K, T, r, sigma) {
+  d1 <- (log(S/K) + (r + sigma^2 / 2) * T) / (sigma * sqrt(T))
+  d2 <- d1 - sigma * sqrt(T)
+  C <- S * pnorm(d1) - K * exp(-r * T) * pnorm(d2)
+  return(C)
+}
+
+data <- read.csv("~/Desktop/AMZN/AMZN.csv")
+
+data$Daily_Returns <- c(NA, diff(log(data$Adj.Close)))
+data <- na.omit(data)
+
+historical_volatility <- sd(data$Daily_Returns) * sqrt(252)
+
+S <- tail(data$Adj.Close, 1)
+K <- 110/100 * S
+T <- 1/252 * nrow(data)
+r <- 0.05
+sigma <- historical_volatility
+
+call_price_historical_vol <- black_scholes_call(S, K, T, r, sigma)
+
+adjusted_sigma <- sigma * 1.1
+call_price_adjusted_vol <- black_scholes_call(S, K, T, r, adjusted_sigma)
+
+cat("Call price using historical volatility:", call_price_historical_vol, "\n")
+cat("Call price using adjusted (variable) volatility:", call_price_adjusted_vol, "\n")
+
